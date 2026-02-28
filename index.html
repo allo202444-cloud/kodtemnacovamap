@@ -3,22 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Оперативно Єціль | DEV MODE</title>
+    <title>Оперативно Єціль | FIXED LOGIC</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet-lasso@2.2.4/dist/leaflet-lasso.umd.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
-        :root { 
-            --accent: #007bff; 
-            --bg-dark: rgba(5, 12, 25, 0.96); 
-            --border: rgba(0, 123, 255, 0.5); 
-            --disabled: #333;
-        }
+        :root { --accent: #007bff; --bg-dark: rgba(5, 12, 25, 0.96); --border: rgba(0, 123, 255, 0.5); --disabled: #333; }
         body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #000; color: white; }
-        #map { height: 100vh; width: 100vw; z-index: 1; }
+        
+        #capture-area { height: 100vh; width: 100vw; position: relative; }
+        #map { height: 100%; width: 100%; z-index: 1; background: #010a14; }
 
         .watermark {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -32,58 +29,41 @@
         .auth-card { width: 300px; padding: 30px; text-align: center; border: 2px solid var(--accent); border-radius: 25px; background: #001; }
         .auth-card input { width: 100%; padding: 12px; margin: 15px 0; border-radius: 10px; border: 1px solid var(--accent); background: none; color: white; text-align: center; outline: none; box-sizing: border-box; }
 
-        .obj-panel { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 1002; background: var(--bg-dark); padding: 10px; border-radius: 20px; border: 1px solid var(--border); }
-        .obj-btn { width: 50px; height: 50px; border-radius: 12px; border: 1px solid var(--border); background: #001a35; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; }
-        .obj-btn img { width: 35px; height: 35px; object-fit: contain; }
-        .obj-btn.active { border-color: white; box-shadow: 0 0 15px var(--accent); background: var(--accent); }
-        .obj-btn.tool { font-size: 22px; color: var(--accent); }
-
-        /* Стиль для заблокованих кнопок */
-        .obj-btn.disabled { 
-            cursor: not-allowed; 
-            filter: grayscale(1) brightness(0.5);
-            border-color: var(--disabled);
+        .obj-panel { 
+            position: absolute; left: 15px; top: 50%; transform: translateY(-50%); 
+            display: flex; flex-direction: column; gap: 8px; z-index: 1002; 
+            background: var(--bg-dark); padding: 10px; border-radius: 20px; 
+            border: 1px solid var(--border); max-height: 85vh; overflow-y: auto;
+            transition: transform 0.3s ease, opacity 0.3s ease;
         }
-        .obj-btn.disabled img { opacity: 0.5; }
+        .obj-panel.hidden { transform: translateY(-50%) translateX(-130%); opacity: 0; }
 
-        /* Напис "В розробці" */
+        .obj-btn { width: 50px; height: 50px; border-radius: 12px; border: 1px solid var(--border); background: #001a35; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; position: relative; }
+        .obj-btn img { width: 35px; height: 35px; object-fit: contain; pointer-events: none; }
+        .obj-btn.active { border-color: white; box-shadow: 0 0 15px var(--accent); background: var(--accent); }
+
+        .obj-btn.disabled { cursor: not-allowed; filter: grayscale(1) opacity(0.4); border-color: var(--disabled); }
         .dev-label {
-            position: absolute;
-            left: 55px;
-            top: 50%;
-            transform: translateY(-50%) rotate(90deg);
-            background: #ff4444;
-            color: white;
-            font-size: 8px;
-            font-weight: bold;
-            padding: 2px 6px;
-            border-radius: 4px;
-            white-space: nowrap;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.2s;
-            z-index: 1003;
+            position: absolute; left: 55px; top: 50%; transform: translateY(-50%) rotate(90deg);
+            background: #ff4444; color: white; font-size: 8px; font-weight: bold; padding: 2px 6px; border-radius: 4px;
+            white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 1003;
         }
         .obj-btn.disabled:hover .dev-label { opacity: 1; }
 
         .bottom-info-bar { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); background: var(--bg-dark); border: 1px solid var(--border); border-radius: 15px; display: flex; z-index: 1002; }
-        .info-section { padding: 8px 20px; border-right: 1px solid var(--border); text-align: center; min-width: 90px; }
+        .info-section { padding: 8px 20px; border-right: 1px solid var(--border); text-align: center; min-width: 80px; }
         .info-section:last-child { border-right: none; }
         .info-label { font-size: 9px; color: var(--accent); text-transform: uppercase; font-weight: bold; }
         .info-val { font-size: 14px; font-weight: bold; }
 
-        .btn-ui { position: absolute; bottom: 80px; right: 20px; width: 55px; height: 55px; background: var(--bg-dark); border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 1001; border: 1px solid var(--border); cursor: pointer; color: var(--accent); font-size: 24px; }
-        .ui-panel { position: absolute; bottom: 145px; right: 20px; background: var(--bg-dark); border-radius: 20px; border: 1px solid var(--border); display: none; z-index: 1000; flex-direction: column; padding: 20px; width: 260px; }
+        .side-controls { position: absolute; bottom: 80px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1001; }
+        .btn-side { width: 55px; height: 55px; background: var(--bg-dark); border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); cursor: pointer; color: var(--accent); font-size: 20px; font-weight: bold; }
         
-        .g-map-btn { background: var(--accent); color: white; padding: 12px; border-radius: 10px; cursor: pointer; text-align: center; font-weight: bold; margin-top: 10px; border: none; width: 100%; }
-        .ruler-label { background: #000; color: var(--accent); padding: 4px 8px; border-radius: 5px; border: 1px solid var(--accent); font-size: 12px; font-weight: bold; }
-        .map-icon-img { transition: transform 0.25s ease-out; pointer-events: none; }
+        .ui-panel { position: absolute; bottom: 250px; right: 20px; background: var(--bg-dark); border-radius: 20px; border: 1px solid var(--border); display: none; z-index: 1000; flex-direction: column; padding: 20px; width: 250px; }
+        .g-map-btn { background: var(--accent); color: white; padding: 10px; border-radius: 10px; cursor: pointer; border: none; width: 100%; margin-top: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
-
-<div id="wm-owl" class="watermark">Код «Темна🦉Сова»</div>
-<div id="wm-bulldog" class="watermark">БУЛЬДОГИ | ПОВІДОМЛЯЮТЬ</div>
 
 <div id="auth-overlay">
     <div class="auth-card">
@@ -93,50 +73,50 @@
     </div>
 </div>
 
-<div class="bottom-info-bar">
-    <div class="info-section"><div class="info-label">Онлайн</div><div id="u-on" class="info-val">0</div></div>
-    <div class="info-section"><div class="info-label">Статус</div><div id="status-text" class="info-val" style="color:var(--accent)">ГОТОВО</div></div>
-    <div class="info-section"><div class="info-label">Оператор</div><div id="op-name" class="info-val">...</div></div>
-</div>
+<div id="capture-area">
+    <div id="wm-owl" class="watermark">Код «Темна🦉Сова»</div>
+    <div id="wm-bulldog" class="watermark">БУЛЬДОГИ | ПОВІДОМЛЯЮТЬ</div>
+    <div id="map"></div>
 
-<div class="obj-panel">
-    <div class="obj-btn" id="btn-shahed" onclick="setMode('shahed')"><img src="shahed.png"></div>
-    <div class="obj-btn" id="btn-kab" onclick="setMode('kab')"><img src="kab.png"></div>
-    <div class="obj-btn" id="btn-su34" onclick="setMode('su34')"><img src="su34.png"></div>
-    
-    <div class="obj-btn disabled" id="btn-isk">
-        <img src="isk.png">
-        <div class="dev-label">В РОЗРОБЦІ</div>
-    </div>
-    <div class="obj-btn disabled" id="btn-zircon">
-        <img src="zircon.png">
-        <div class="dev-label">В РОЗРОБЦІ</div>
+    <div class="bottom-info-bar">
+        <div class="info-section"><div class="info-label">Онлайн</div><div id="u-on" class="info-val">0</div></div>
+        <div class="info-section"><div class="info-label">Статус</div><div id="status-text" class="info-val" style="color:var(--accent)">ГОТОВО</div></div>
+        <div class="info-section"><div class="info-label">Оператор</div><div id="op-name" class="info-val">...</div></div>
     </div>
 
-    <div class="obj-btn" id="btn-scout" onclick="setMode('scout')"><img src="orlan.png"></div>
-    <div class="obj-btn" id="btn-neyst" onclick="setMode('neyst')"><img src="neyst.png"></div>
-    <hr style="width:100%; border:0; border-top:1px solid var(--border)">
-    <div class="obj-btn tool" id="btn-ruler" onclick="setMode('ruler')">📏</div>
-    <div class="obj-btn tool" id="btn-lasso" onclick="toggleLasso()">🎯</div>
-    <div class="obj-btn tool" id="btn-delete" onclick="setMode('delete')" style="color:#ff4444">🗑️</div>
+    <div class="obj-panel" id="main-panel">
+        <div class="obj-btn" id="btn-shahed" onclick="setMode('shahed')"><img src="shahed.png" title="Шахед"></div>
+        <div class="obj-btn" id="btn-lancet" onclick="setMode('lancet')"><img src="lan.png" title="Ланцет"></div>
+        <div class="obj-btn" id="btn-molniya" onclick="setMode('molniya')"><img src="mol.png" title="Молнія"></div>
+        <div class="obj-btn" id="btn-zala" onclick="setMode('zala')"><img src="zal.png" title="ZALA"></div>
+        <div class="obj-btn" id="btn-supercam" onclick="setMode('supercam')"><img src="sup.png" title="Supercam"></div>
+        <div class="obj-btn" id="btn-kab" onclick="setMode('kab')"><img src="kab.png" title="КАБ"></div>
+        <div class="obj-btn" id="btn-su34" onclick="setMode('su34')"><img src="su34.png" title="Су-34"></div>
+        
+        <div class="obj-btn disabled"><img src="isk.png"><div class="dev-label">В РОЗРОБЦІ</div></div>
+        <div class="obj-btn disabled"><img src="zircon.png"><div class="dev-label">В РОЗРОБЦІ</div></div>
+        
+        <div class="obj-btn" id="btn-scout" onclick="setMode('scout')"><img src="orlan.png" title="Розвідник"></div>
+        <div class="obj-btn" id="btn-neyst" onclick="setMode('neyst')"><img src="neyst.png" title="Нерухомий"></div>
+        <hr style="width:100%; border:0; border-top:1px solid var(--border)">
+        <div class="obj-btn tool" id="btn-delete" onclick="setMode('delete')" style="color:#ff4444; font-size:24px">🗑️</div>
+    </div>
 </div>
 
-<div id="map"></div>
-<div class="btn-ui" onclick="toggleP('settings-panel')">⚙️</div>
+<div class="side-controls">
+    <div class="btn-side" onclick="takeScreenshot()">📸</div>
+    <div class="btn-side" onclick="toggleMainPanel()">F</div>
+    <div class="btn-side" onclick="toggleP('settings-panel')">⚙️</div>
+</div>
 
 <div class="ui-panel" id="settings-panel">
-    <h3 style="margin:0 0 10px 0; color:var(--accent)">Налаштування</h3>
-    <div style="font-size: 11px; color: var(--accent); margin-bottom: 5px;">МАСШТАБ ІКОНОК: <span id="size-val">40</span>px</div>
-    <input type="range" id="icon-size" style="width:100%;" min="20" max="120" value="40" oninput="changeIconSize(this.value)">
+    <h3 style="margin:0 0 10px 0; color:var(--accent); font-size:16px">Налаштування</h3>
+    <div style="font-size: 11px; color: var(--accent); margin-bottom: 5px;">РОЗМІР ІКОНОК: <span id="size-val">40</span>px</div>
+    <input type="range" id="icon-size" style="width:100%;" min="20" max="100" value="40" oninput="changeIconSize(this.value)">
     <button class="g-map-btn" onclick="toggleGoogle()">GOOGLE РЕЛЬЄФ (UA)</button>
-    
     <hr style="border:0; border-top:1px solid var(--border); margin:15px 0">
-    <label style="display:flex; align-items:center; gap:10px; font-size: 13px; margin-bottom: 8px; cursor:pointer;">
-        <input type="checkbox" id="chk-owl" onchange="updWM()"> 🦉 Темна Сова
-    </label>
-    <label style="display:flex; align-items:center; gap:10px; font-size: 13px; cursor:pointer;">
-        <input type="checkbox" id="chk-bulldog" onchange="updWM()"> 🐶 Бульдоги
-    </label>
+    <label style="display:flex; align-items:center; gap:10px; font-size: 13px; margin-bottom: 8px;"><input type="checkbox" id="chk-owl" onchange="updWM()"> 🦉 Темна Сова</label>
+    <label style="display:flex; align-items:center; gap:10px; font-size: 13px;"><input type="checkbox" id="chk-bulldog" onchange="updWM()"> 🐶 Бульдоги</label>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -147,21 +127,31 @@
 
     let myN = "", myI = "u" + Date.now(), isG = false;
     let currentMode = null, selectedId = null, step = 1, globalIconSize = 40;
-    const markers = {}, objCache = {}, circles = {};
-    const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([48.5, 31.2], 6);
+    const markers = {}, objCache = {};
     
-    const layers = {
-        dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'),
-        googleRelief: L.tileLayer('https://{s}.google.com/vt/lyrs=p&hl=uk&x={x}&y={y}&z={z}', { subdomains:['mt0','mt1','mt2','mt3'] })
-    };
-    layers.dark.addTo(map);
+    const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([48.5, 31.2], 6);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { crossOrigin: 'anonymous' }).addTo(map);
+    const gRelief = L.tileLayer('https://{s}.google.com/vt/lyrs=p&hl=uk&x={x}&y={y}&z={z}', { subdomains:['mt0','mt1','mt2','mt3'], crossOrigin: 'anonymous' });
 
-    const lassoControl = L.lasso(map, { intersect: true });
+    function login() {
+        myN = document.getElementById('username').value.trim();
+        if(myN) { document.getElementById('auth-overlay').style.display = 'none'; document.getElementById('op-name').innerText = myN; start(); }
+    }
 
-    function toggleGoogle() { isG = !isG; isG ? layers.googleRelief.addTo(map) : map.removeLayer(layers.googleRelief); }
+    function toggleMainPanel() { document.getElementById('main-panel').classList.toggle('hidden'); }
+    function toggleGoogle() { isG = !isG; isG ? gRelief.addTo(map) : map.removeLayer(gRelief); }
     function updWM() {
         document.getElementById('wm-owl').style.display = document.getElementById('chk-owl').checked ? 'block' : 'none';
         document.getElementById('wm-bulldog').style.display = document.getElementById('chk-bulldog').checked ? 'block' : 'none';
+    }
+
+    function takeScreenshot() {
+        html2canvas(document.getElementById('capture-area'), { useCORS: true, allowTaint: true }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `CIL_${Date.now()}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        });
     }
 
     function changeIconSize(val) {
@@ -170,27 +160,14 @@
         for (let id in markers) redrawMarker(id);
     }
 
-    function login() {
-        myN = document.getElementById('username').value.trim();
-        if(myN) { 
-            document.getElementById('auth-overlay').style.display = 'none'; 
-            document.getElementById('op-name').innerText = myN;
-            start(); 
-        }
-    }
-
     function setMode(mode) {
-        // Заборона вибору Іскандера та Циркона
-        if(mode === 'isk' || mode === 'zircon') return;
-        
         currentMode = (currentMode === mode) ? null : mode;
         step = 1; selectedId = null;
         document.querySelectorAll('.obj-btn').forEach(b => b.classList.remove('active'));
-        if(currentMode) document.getElementById('btn-' + currentMode).classList.add('active');
+        const activeBtn = document.getElementById('btn-' + currentMode);
+        if(activeBtn) activeBtn.classList.add('active');
         document.getElementById('status-text').innerText = currentMode ? currentMode.toUpperCase() : "ГОТОВО";
     }
-
-    function toggleLasso() { lassoControl.enable(); document.getElementById('status-text').innerText = "ОБВЕДІТЬ..."; }
 
     function start() {
         db.ref('presence/' + myI).set({ n: myN });
@@ -198,65 +175,77 @@
 
         map.on('click', (e) => {
             if (step === 2 && selectedId) {
-                const d = objCache[selectedId];
-                if(d) {
-                    const angle = Math.atan2(e.latlng.lng - d.lng, e.latlng.lat - d.lat) * 180 / Math.PI;
-                    db.ref('objects/' + selectedId).update({ angle: angle });
-                }
-                setMode(null);
-                return;
+                const angle = (Math.atan2(e.latlng.lng - objCache[selectedId].lng, e.latlng.lat - objCache[selectedId].lat) * 180 / Math.PI);
+                db.ref('objects/' + selectedId).update({ angle: angle });
+                setMode(null); return;
             }
-            if (currentMode && !['delete','ruler'].includes(currentMode)) {
+            if (currentMode && currentMode !== 'delete') {
                 const ref = db.ref('objects').push();
                 selectedId = ref.key;
                 ref.set({ lat: e.latlng.lat, lng: e.latlng.lng, type: currentMode, angle: 0 });
-                step = 2;
-                document.getElementById('status-text').innerText = "КУРС...";
+                step = 2; document.getElementById('status-text').innerText = "КУРС...";
             }
         });
 
         db.ref('objects').on('value', s => {
             const data = s.val() || {};
-            Object.keys(markers).forEach(id => { 
-                if(!data[id]) { map.removeLayer(markers[id]); delete markers[id]; delete objCache[id]; } 
-            });
+            Object.keys(markers).forEach(id => { if(!data[id]) { map.removeLayer(markers[id]); delete markers[id]; delete objCache[id]; } });
             for(let id in data) {
                 const d = data[id]; objCache[id] = d;
-                if(markers[id]) { markers[id].setLatLng([d.lat, d.lng]); redrawMarker(id); }
-                else {
+                if(markers[id]) { 
+                    markers[id].setLatLng([d.lat, d.lng]); 
+                    redrawMarker(id); 
+                } else {
                     const m = L.marker([d.lat, d.lng], { draggable: true }).addTo(map);
-                    m.objId = id; markers[id] = m;
+                    m.on('click', (ev) => { L.DomEvent.stopPropagation(ev); if(currentMode === 'delete') db.ref('objects/' + id).remove(); else { selectedId = id; step = 2; document.getElementById('status-text').innerText = "КУРС..."; } });
+                    m.on('dragend', (ev) => { db.ref('objects/' + id).update({ lat: ev.target.getLatLng().lat, lng: ev.target.getLatLng().lng }); });
+                    markers[id] = m;
                     redrawMarker(id);
-                    m.on('click', (ev) => {
-                        L.DomEvent.stopPropagation(ev);
-                        if(currentMode === 'delete') db.ref('objects/' + id).remove();
-                        else { selectedId = id; step = 2; document.getElementById('status-text').innerText = "КУРС..."; }
-                    });
-                    m.on('dragend', (ev) => { 
-                        db.ref('objects/' + id).update({ lat: ev.target.getLatLng().lat, lng: ev.target.getLatLng().lng }); 
-                    });
                 }
             }
         });
+
+        setInterval(() => {
+            for (let id in objCache) {
+                const o = objCache[id]; let s = 0;
+                if(o.type === 'shahed') s = 165; else if(o.type === 'lancet') s = 90; else if(o.type === 'molniya') s = 95; 
+                else if(o.type === 'zala') s = 80; else if(o.type === 'supercam') s = 85; else if(o.type === 'su34') s = 950; 
+                else if(o.type === 'kab') s = 800; else if(o.type === 'scout') s = 105;
+
+                if (s > 0 && !(selectedId === id && step === 2)) {
+                    const R = 6371;
+                    const dist = s / 3600; 
+                    const brng = o.angle * Math.PI / 180;
+                    const la1 = o.lat * Math.PI / 180;
+                    const lo1 = o.lng * Math.PI / 180;
+
+                    const la2 = Math.asin(Math.sin(la1) * Math.cos(dist/R) + Math.cos(la1) * Math.sin(dist/R) * Math.cos(brng));
+                    const lo2 = lo1 + Math.atan2(Math.sin(brng) * Math.sin(dist/R) * Math.cos(la1), Math.cos(dist/R) - Math.sin(la1) * Math.sin(la2));
+                    
+                    db.ref('objects/' + id).update({ lat: la2 * 180 / Math.PI, lng: lo2 * 180 / Math.PI });
+                }
+            }
+        }, 1000);
     }
 
     function redrawMarker(id) {
-        const d = objCache[id]; if(!d || !markers[id]) return;
-        let iconPath = d.type + '.png';
-        if(d.type === 'scout') iconPath = 'orlan.png';
-        if(d.type === 'neyst') iconPath = 'neyst.png';
-
-        markers[id].setIcon(L.divIcon({
-            className: 't-div',
-            html: `<img class="map-icon-img" src="${iconPath}" style="width:${globalIconSize}px; transform:rotate(${d.angle}deg)">`,
-            iconSize: [globalIconSize, globalIconSize], iconAnchor: [globalIconSize/2, globalIconSize/2]
+        const d = objCache[id]; if(!d) return;
+        let img = d.type + '.png';
+        if(d.type === 'lancet') img = 'lan.png'; 
+        else if(d.type === 'molniya') img = 'mol.png'; 
+        else if(d.type === 'zala') img = 'zal.png'; 
+        else if(d.type === 'supercam') img = 'sup.png'; 
+        else if(d.type === 'scout') img = 'orlan.png';
+        
+        markers[id].setIcon(L.divIcon({ 
+            className: 't-div', 
+            html: `<img src="${img}" style="width:${globalIconSize}px; transform:rotate(${d.angle}deg)">`, 
+            iconSize: [globalIconSize, globalIconSize], 
+            iconAnchor: [globalIconSize/2, globalIconSize/2] 
         }));
     }
 
-    function toggleP(id) { 
-        const p = document.getElementById(id); 
-        p.style.display = (p.style.display === 'none' || p.style.display === '') ? 'flex' : 'none'; 
-    }
+    function toggleP(id) { const p = document.getElementById(id); p.style.display = (p.style.display === 'none' || p.style.display === '') ? 'flex' : 'none'; }
     db.ref('presence').on('value', s => { document.getElementById('u-on').innerText = s.numChildren(); });
 </script>
 </body>
