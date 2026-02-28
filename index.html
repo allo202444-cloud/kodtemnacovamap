@@ -4,46 +4,260 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Оперативно Єціль | DEV MODE</title>
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="style.css"> <!-- Твои стили здесь -->
-</head>
-<body>
-    <div id="wm-owl" class="watermark">Код «Темна🦉Сова»</div>
-    <div id="wm-bulldog" class="watermark">БУЛЬДОГИ | ПОВІДОМЛЯЮТЬ</div>
-
-    <div id="auth-overlay">
-        <div class="auth-card">
-            <h2 style="color:var(--accent)">СИСТЕМА ЦІЛЬ</h2>
-            <input type="text" id="username" placeholder="Нік...">
-            <button id="loginBtn">ПОЧАТИ</button>
-        </div>
-    </div>
-
-    <div class="bottom-info-bar">
-        <div class="info-section"><div class="info-label">Онлайн</div><div id="u-on" class="info-val">0</div></div>
-        <div class="info-section"><div class="info-label">Статус</div><div id="status-text" class="info-val" style="color:var(--accent)">ГОТОВО</div></div>
-        <div class="info-section"><div class="info-label">Оператор</div><div id="op-name" class="info-val">...</div></div>
-    </div>
-
-    <div class="obj-panel">
-        <div class="obj-btn" id="btn-shahed"><img src="shahed.png"></div>
-        <div class="obj-btn" id="btn-kab"><img src="kab.png"></div>
-        <div class="obj-btn" id="btn-su34"><img src="su34.png"></div>
-        <div class="obj-btn disabled"><img src="isk.png"><div class="dev-label">В РОЗРОБЦІ</div></div>
-        <div class="obj-btn" id="btn-scout"><img src="orlan.png"></div>
-        <div class="obj-btn tool" id="btn-ruler">📏</div>
-        <div class="obj-btn tool" id="btn-delete" style="color:#ff4444">🗑️</div>
-    </div>
-
-    <div id="map"></div>
-
-    <!-- Сторонние либы -->
-    <script src="https://unpkg.com"></script>
     <script src="https://unpkg.com/leaflet-lasso@2.2.4/dist/leaflet-lasso.umd.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+    <style>
+        :root { 
+            --accent: #007bff; 
+            --bg-dark: rgba(5, 12, 25, 0.96); 
+            --border: rgba(0, 123, 255, 0.5); 
+            --disabled: #333;
+        }
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #000; color: white; }
+        #map { height: 100vh; width: 100vw; z-index: 1; }
+
+        .watermark {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 500; pointer-events: none; font-weight: 900; text-transform: uppercase;
+            text-align: center; display: none; color: #000000; opacity: 0.6; white-space: nowrap; user-select: none;
+        }
+        #wm-owl { font-size: 45px; letter-spacing: 8px; margin-top: -30px; }
+        #wm-bulldog { font-size: 30px; letter-spacing: 4px; margin-top: 30px; }
+
+        #auth-overlay { position: fixed; inset: 0; background: #000814; z-index: 9999; display: flex; align-items: center; justify-content: center; }
+        .auth-card { width: 300px; padding: 30px; text-align: center; border: 2px solid var(--accent); border-radius: 25px; background: #001; }
+        .auth-card input { width: 100%; padding: 12px; margin: 15px 0; border-radius: 10px; border: 1px solid var(--accent); background: none; color: white; text-align: center; outline: none; box-sizing: border-box; }
+
+        .obj-panel { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 1002; background: var(--bg-dark); padding: 10px; border-radius: 20px; border: 1px solid var(--border); }
+        .obj-btn { width: 50px; height: 50px; border-radius: 12px; border: 1px solid var(--border); background: #001a35; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; }
+        .obj-btn img { width: 35px; height: 35px; object-fit: contain; }
+        .obj-btn.active { border-color: white; box-shadow: 0 0 15px var(--accent); background: var(--accent); }
+        .obj-btn.tool { font-size: 22px; color: var(--accent); }
+
+        /* Стиль для заблокованих кнопок */
+        .obj-btn.disabled { 
+            cursor: not-allowed; 
+            filter: grayscale(1) brightness(0.5);
+            border-color: var(--disabled);
+        }
+        .obj-btn.disabled img { opacity: 0.5; }
+
+        /* Напис "В розробці" */
+        .dev-label {
+            position: absolute;
+            left: 55px;
+            top: 50%;
+            transform: translateY(-50%) rotate(90deg);
+            background: #ff4444;
+            color: white;
+            font-size: 8px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 1003;
+        }
+        .obj-btn.disabled:hover .dev-label { opacity: 1; }
+
+        .bottom-info-bar { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); background: var(--bg-dark); border: 1px solid var(--border); border-radius: 15px; display: flex; z-index: 1002; }
+        .info-section { padding: 8px 20px; border-right: 1px solid var(--border); text-align: center; min-width: 90px; }
+        .info-section:last-child { border-right: none; }
+        .info-label { font-size: 9px; color: var(--accent); text-transform: uppercase; font-weight: bold; }
+        .info-val { font-size: 14px; font-weight: bold; }
+
+        .btn-ui { position: absolute; bottom: 80px; right: 20px; width: 55px; height: 55px; background: var(--bg-dark); border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 1001; border: 1px solid var(--border); cursor: pointer; color: var(--accent); font-size: 24px; }
+        .ui-panel { position: absolute; bottom: 145px; right: 20px; background: var(--bg-dark); border-radius: 20px; border: 1px solid var(--border); display: none; z-index: 1000; flex-direction: column; padding: 20px; width: 260px; }
+        
+        .g-map-btn { background: var(--accent); color: white; padding: 12px; border-radius: 10px; cursor: pointer; text-align: center; font-weight: bold; margin-top: 10px; border: none; width: 100%; }
+        .ruler-label { background: #000; color: var(--accent); padding: 4px 8px; border-radius: 5px; border: 1px solid var(--accent); font-size: 12px; font-weight: bold; }
+        .map-icon-img { transition: transform 0.25s ease-out; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+<div id="wm-owl" class="watermark">Код «Темна🦉Сова»</div>
+<div id="wm-bulldog" class="watermark">БУЛЬДОГИ | ПОВІДОМЛЯЮТЬ</div>
+
+<div id="auth-overlay">
+    <div class="auth-card">
+        <h2 style="color:var(--accent)">СИСТЕМА ЦІЛЬ</h2>
+        <input type="text" id="username" placeholder="Нік...">
+        <button onclick="login()" style="width:100%; background:var(--accent); color:white; padding:12px; border:none; border-radius:15px; font-weight:bold; cursor:pointer;">ПОЧАТИ</button>
+    </div>
+</div>
+
+<div class="bottom-info-bar">
+    <div class="info-section"><div class="info-label">Онлайн</div><div id="u-on" class="info-val">0</div></div>
+    <div class="info-section"><div class="info-label">Статус</div><div id="status-text" class="info-val" style="color:var(--accent)">ГОТОВО</div></div>
+    <div class="info-section"><div class="info-label">Оператор</div><div id="op-name" class="info-val">...</div></div>
+</div>
+
+<div class="obj-panel">
+    <div class="obj-btn" id="btn-shahed" onclick="setMode('shahed')"><img src="shahed.png"></div>
+    <div class="obj-btn" id="btn-kab" onclick="setMode('kab')"><img src="kab.png"></div>
+    <div class="obj-btn" id="btn-su34" onclick="setMode('su34')"><img src="su34.png"></div>
     
-    <!-- Твой зашифрованный скрипт -->
-    <script src="script-main.js"></script>
+    <div class="obj-btn disabled" id="btn-isk">
+        <img src="isk.png">
+        <div class="dev-label">В РОЗРОБЦІ</div>
+    </div>
+    <div class="obj-btn disabled" id="btn-zircon">
+        <img src="zircon.png">
+        <div class="dev-label">В РОЗРОБЦІ</div>
+    </div>
+
+    <div class="obj-btn" id="btn-scout" onclick="setMode('scout')"><img src="orlan.png"></div>
+    <div class="obj-btn" id="btn-neyst" onclick="setMode('neyst')"><img src="neyst.png"></div>
+    <hr style="width:100%; border:0; border-top:1px solid var(--border)">
+    <div class="obj-btn tool" id="btn-ruler" onclick="setMode('ruler')">📏</div>
+    <div class="obj-btn tool" id="btn-lasso" onclick="toggleLasso()">🎯</div>
+    <div class="obj-btn tool" id="btn-delete" onclick="setMode('delete')" style="color:#ff4444">🗑️</div>
+</div>
+
+<div id="map"></div>
+<div class="btn-ui" onclick="toggleP('settings-panel')">⚙️</div>
+
+<div class="ui-panel" id="settings-panel">
+    <h3 style="margin:0 0 10px 0; color:var(--accent)">Налаштування</h3>
+    <div style="font-size: 11px; color: var(--accent); margin-bottom: 5px;">МАСШТАБ ІКОНОК: <span id="size-val">40</span>px</div>
+    <input type="range" id="icon-size" style="width:100%;" min="20" max="120" value="40" oninput="changeIconSize(this.value)">
+    <button class="g-map-btn" onclick="toggleGoogle()">GOOGLE РЕЛЬЄФ (UA)</button>
+    
+    <hr style="border:0; border-top:1px solid var(--border); margin:15px 0">
+    <label style="display:flex; align-items:center; gap:10px; font-size: 13px; margin-bottom: 8px; cursor:pointer;">
+        <input type="checkbox" id="chk-owl" onchange="updWM()"> 🦉 Темна Сова
+    </label>
+    <label style="display:flex; align-items:center; gap:10px; font-size: 13px; cursor:pointer;">
+        <input type="checkbox" id="chk-bulldog" onchange="updWM()"> 🐶 Бульдоги
+    </label>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const firebaseConfig = { databaseURL: "https://map-objects-75fa0-default-rtdb.europe-west1.firebasedatabase.app/" };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let myN = "", myI = "u" + Date.now(), isG = false;
+    let currentMode = null, selectedId = null, step = 1, globalIconSize = 40;
+    const markers = {}, objCache = {}, circles = {};
+    const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([48.5, 31.2], 6);
+    
+    const layers = {
+        dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'),
+        googleRelief: L.tileLayer('https://{s}.google.com/vt/lyrs=p&hl=uk&x={x}&y={y}&z={z}', { subdomains:['mt0','mt1','mt2','mt3'] })
+    };
+    layers.dark.addTo(map);
+
+    const lassoControl = L.lasso(map, { intersect: true });
+
+    function toggleGoogle() { isG = !isG; isG ? layers.googleRelief.addTo(map) : map.removeLayer(layers.googleRelief); }
+    function updWM() {
+        document.getElementById('wm-owl').style.display = document.getElementById('chk-owl').checked ? 'block' : 'none';
+        document.getElementById('wm-bulldog').style.display = document.getElementById('chk-bulldog').checked ? 'block' : 'none';
+    }
+
+    function changeIconSize(val) {
+        globalIconSize = parseInt(val);
+        document.getElementById('size-val').innerText = val;
+        for (let id in markers) redrawMarker(id);
+    }
+
+    function login() {
+        myN = document.getElementById('username').value.trim();
+        if(myN) { 
+            document.getElementById('auth-overlay').style.display = 'none'; 
+            document.getElementById('op-name').innerText = myN;
+            start(); 
+        }
+    }
+
+    function setMode(mode) {
+        // Заборона вибору Іскандера та Циркона
+        if(mode === 'isk' || mode === 'zircon') return;
+        
+        currentMode = (currentMode === mode) ? null : mode;
+        step = 1; selectedId = null;
+        document.querySelectorAll('.obj-btn').forEach(b => b.classList.remove('active'));
+        if(currentMode) document.getElementById('btn-' + currentMode).classList.add('active');
+        document.getElementById('status-text').innerText = currentMode ? currentMode.toUpperCase() : "ГОТОВО";
+    }
+
+    function toggleLasso() { lassoControl.enable(); document.getElementById('status-text').innerText = "ОБВЕДІТЬ..."; }
+
+    function start() {
+        db.ref('presence/' + myI).set({ n: myN });
+        db.ref('presence/' + myI).onDisconnect().remove();
+
+        map.on('click', (e) => {
+            if (step === 2 && selectedId) {
+                const d = objCache[selectedId];
+                if(d) {
+                    const angle = Math.atan2(e.latlng.lng - d.lng, e.latlng.lat - d.lat) * 180 / Math.PI;
+                    db.ref('objects/' + selectedId).update({ angle: angle });
+                }
+                setMode(null);
+                return;
+            }
+            if (currentMode && !['delete','ruler'].includes(currentMode)) {
+                const ref = db.ref('objects').push();
+                selectedId = ref.key;
+                ref.set({ lat: e.latlng.lat, lng: e.latlng.lng, type: currentMode, angle: 0 });
+                step = 2;
+                document.getElementById('status-text').innerText = "КУРС...";
+            }
+        });
+
+        db.ref('objects').on('value', s => {
+            const data = s.val() || {};
+            Object.keys(markers).forEach(id => { 
+                if(!data[id]) { map.removeLayer(markers[id]); delete markers[id]; delete objCache[id]; } 
+            });
+            for(let id in data) {
+                const d = data[id]; objCache[id] = d;
+                if(markers[id]) { markers[id].setLatLng([d.lat, d.lng]); redrawMarker(id); }
+                else {
+                    const m = L.marker([d.lat, d.lng], { draggable: true }).addTo(map);
+                    m.objId = id; markers[id] = m;
+                    redrawMarker(id);
+                    m.on('click', (ev) => {
+                        L.DomEvent.stopPropagation(ev);
+                        if(currentMode === 'delete') db.ref('objects/' + id).remove();
+                        else { selectedId = id; step = 2; document.getElementById('status-text').innerText = "КУРС..."; }
+                    });
+                    m.on('dragend', (ev) => { 
+                        db.ref('objects/' + id).update({ lat: ev.target.getLatLng().lat, lng: ev.target.getLatLng().lng }); 
+                    });
+                }
+            }
+        });
+    }
+
+    function redrawMarker(id) {
+        const d = objCache[id]; if(!d || !markers[id]) return;
+        let iconPath = d.type + '.png';
+        if(d.type === 'scout') iconPath = 'orlan.png';
+        if(d.type === 'neyst') iconPath = 'neyst.png';
+
+        markers[id].setIcon(L.divIcon({
+            className: 't-div',
+            html: `<img class="map-icon-img" src="${iconPath}" style="width:${globalIconSize}px; transform:rotate(${d.angle}deg)">`,
+            iconSize: [globalIconSize, globalIconSize], iconAnchor: [globalIconSize/2, globalIconSize/2]
+        }));
+    }
+
+    function toggleP(id) { 
+        const p = document.getElementById(id); 
+        p.style.display = (p.style.display === 'none' || p.style.display === '') ? 'flex' : 'none'; 
+    }
+    db.ref('presence').on('value', s => { document.getElementById('u-on').innerText = s.numChildren(); });
+</script>
 </body>
 </html>
