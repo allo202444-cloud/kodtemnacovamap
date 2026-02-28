@@ -1,0 +1,30 @@
+:root { 
+    --accent: #007bff; 
+    --bg-dark: rgba(5, 12, 25, 0.96); 
+    --border: rgba(0, 123, 255, 0.5); 
+    --disabled: #333;
+}
+body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #000; color: white; }
+#map { height: 100vh; width: 100vw; z-index: 1; }
+
+.watermark {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    z-index: 500; pointer-events: none; font-weight: 900; text-transform: uppercase;
+    text-align: center; display: none; color: #000000; opacity: 0.6; white-space: nowrap; user-select: none;
+}
+#wm-owl { font-size: 45px; letter-spacing: 8px; margin-top: -30px; }
+#wm-bulldog { font-size: 30px; letter-spacing: 4px; margin-top: 30px; }
+
+#auth-overlay { position: fixed; inset: 0; background: #000814; z-index: 9999; display: flex; align-items: center; justify-content: center; }
+.auth-card { width: 300px; padding: 30px; text-align: center; border: 2px solid var(--accent); border-radius: 25px; background: #001; }
+.auth-card input { width: 100%; padding: 12px; margin: 15px 0; border-radius: 10px; border: 1px solid var(--accent); background: none; color: white; text-align: center; outline: none; box-sizing: border-box; }
+.login-btn { width:100%; background:var(--accent); color:white; padding:12px; border:none; border-radius:15px; font-weight:bold; cursor:pointer; }
+
+.obj-panel { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 1002; background: var(--bg-dark); padding: 10px; border-radius: 20px; border: 1px solid var(--border); }
+.obj-btn { width: 50px; height: 50px; border-radius: 12px; border: 1px solid var(--border); background: #001a35; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; }
+.obj-btn img { width: 35px; height: 35px; object-fit: contain; }
+.obj-btn.active { border-color: white; box-shadow: 0 0 15px var(--accent); background: var(--accent); }
+
+.bottom-info-bar { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); background: var(--bg-dark); border: 1px solid var(--border); border-radius: 15px; display: flex; z-index: 1002; }
+.info-section { padding: 8px 20px; border-right: 1px solid var(--border); text-align: center; min-width: 90px; }
+.info-label { font-size: 9px; color: var(--accent); text-transform: uppercase; font-weight: bold; }
