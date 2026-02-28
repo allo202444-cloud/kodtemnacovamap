@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Оперативно Єціль | DEV MODE</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css"> <!-- Твои стили здесь -->
+</head>
+<body>
+    <div id="wm-owl" class="watermark">Код «Темна🦉Сова»</div>
+    <div id="wm-bulldog" class="watermark">БУЛЬДОГИ | ПОВІДОМЛЯЮТЬ</div>
+
+    <div id="auth-overlay">
+        <div class="auth-card">
+            <h2 style="color:var(--accent)">СИСТЕМА ЦІЛЬ</h2>
+            <input type="text" id="username" placeholder="Нік...">
+            <button id="loginBtn">ПОЧАТИ</button>
+        </div>
+    </div>
+
+    <div class="bottom-info-bar">
+        <div class="info-section"><div class="info-label">Онлайн</div><div id="u-on" class="info-val">0</div></div>
+        <div class="info-section"><div class="info-label">Статус</div><div id="status-text" class="info-val" style="color:var(--accent)">ГОТОВО</div></div>
+        <div class="info-section"><div class="info-label">Оператор</div><div id="op-name" class="info-val">...</div></div>
+    </div>
+
+    <div class="obj-panel">
+        <div class="obj-btn" id="btn-shahed"><img src="shahed.png"></div>
+        <div class="obj-btn" id="btn-kab"><img src="kab.png"></div>
+        <div class="obj-btn" id="btn-su34"><img src="su34.png"></div>
+        <div class="obj-btn disabled"><img src="isk.png"><div class="dev-label">В РОЗРОБЦІ</div></div>
+        <div class="obj-btn" id="btn-scout"><img src="orlan.png"></div>
+        <div class="obj-btn tool" id="btn-ruler">📏</div>
+        <div class="obj-btn tool" id="btn-delete" style="color:#ff4444">🗑️</div>
+    </div>
+
+    <div id="map"></div>
+
+    <!-- Сторонние либы -->
+    <script src="https://unpkg.com"></script>
+    <script src="https://unpkg.com/leaflet-lasso@2.2.4/dist/leaflet-lasso.umd.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    
+    <!-- Твой зашифрованный скрипт -->
+    <script src="script-main.js"></script>
+</body>
+</html>
