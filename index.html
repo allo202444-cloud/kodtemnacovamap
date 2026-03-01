@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <titleTEMNACOVA</title>
+    <title>Оперативно Єціль | SEARCH SYSTEM</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -16,6 +18,18 @@
         
         #capture-area { height: 100vh; width: 100vw; position: relative; }
         #map { height: 100%; width: 100%; z-index: 1; background: #010a14; }
+
+        /* Стилізація вікна пошуку */
+        .leaflet-control-geocoder { 
+            background: var(--bg-dark) !important; 
+            border: 1px solid var(--border) !important; 
+            border-radius: 10px !important;
+            margin-top: 15px !important;
+            margin-right: 15px !important;
+        }
+        .leaflet-control-geocoder-form input { color: white !important; background: none !important; }
+        .leaflet-control-geocoder-icon { filter: invert(1); }
+        .leaflet-control-geocoder-alternatives { background: #001a35 !important; color: white !important; border-radius: 0 0 10px 10px; }
 
         .watermark {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -120,6 +134,8 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
 <script>
     const firebaseConfig = { databaseURL: "https://map-objects-75fa0-default-rtdb.europe-west1.firebasedatabase.app/" };
     firebase.initializeApp(firebaseConfig);
@@ -132,6 +148,23 @@
     const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([48.5, 31.2], 6);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { crossOrigin: 'anonymous' }).addTo(map);
     const gRelief = L.tileLayer('https://{s}.google.com/vt/lyrs=p&hl=uk&x={x}&y={y}&z={z}', { subdomains:['mt0','mt1','mt2','mt3'], crossOrigin: 'anonymous' });
+
+    // Функція пошуку населених пунктів
+    L.Control.geocoder({
+        defaultMarkGeocode: false,
+        placeholder: "Пошук населеного пункту...",
+        geocoder: L.Control.Geocoder.nominatim({
+            geocodingQueryParams: { countrycodes: 'ua', limit: 5 }
+        })
+    })
+    .on('markgeocode', function(e) {
+        var bbox = e.geocode.bbox;
+        var poly = L.polygon([
+            bbox.getSouthEast(), bbox.getNorthEast(), bbox.getNorthWest(), bbox.getSouthWest()
+        ]);
+        map.fitBounds(poly.getBounds());
+    })
+    .addTo(map);
 
     function login() {
         myN = document.getElementById('username').value.trim();
@@ -214,13 +247,13 @@
 
                 if (s > 0 && !(selectedId === id && step === 2)) {
                     const R = 6371;
-                    const dist = s / 3600; 
+                    const d = s / 3600; 
                     const brng = o.angle * Math.PI / 180;
                     const la1 = o.lat * Math.PI / 180;
                     const lo1 = o.lng * Math.PI / 180;
 
-                    const la2 = Math.asin(Math.sin(la1) * Math.cos(dist/R) + Math.cos(la1) * Math.sin(dist/R) * Math.cos(brng));
-                    const lo2 = lo1 + Math.atan2(Math.sin(brng) * Math.sin(dist/R) * Math.cos(la1), Math.cos(dist/R) - Math.sin(la1) * Math.sin(la2));
+                    const la2 = Math.asin(Math.sin(la1) * Math.cos(d/R) + Math.cos(la1) * Math.sin(d/R) * Math.cos(brng));
+                    const lo2 = lo1 + Math.atan2(Math.sin(brng) * Math.sin(d/R) * Math.cos(la1), Math.cos(d/R) - Math.sin(la1) * Math.sin(la2));
                     
                     db.ref('objects/' + id).update({ lat: la2 * 180 / Math.PI, lng: lo2 * 180 / Math.PI });
                 }
